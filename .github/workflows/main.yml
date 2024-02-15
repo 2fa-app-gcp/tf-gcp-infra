@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  terraform:
+  planner:
     runs-on: ubuntu-latest
 
     steps:
