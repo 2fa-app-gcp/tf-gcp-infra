@@ -19,4 +19,4 @@ jobs:
         tf_version: "1.0.0" 
 
     - name: Terraform Init
-      run: terraform init
+      run: terraform init #terraform init
