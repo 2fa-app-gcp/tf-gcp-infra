@@ -1,0 +1,31 @@
+name: Terraform Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        tf_version: "1.0.0" 
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Plan
+      run: terraform plan -var-file=terraform.tfvars
+
+    - name: Terraform Apply
+      run: terraform apply -auto-approve -var-file=terraform.tfvars
+
+    - name: Cleanup
+      run: terraform destroy -auto-approve -var-file=terraform.tfvars
