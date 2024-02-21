@@ -10,6 +10,7 @@ variable "credentials_file" {
 
 variable "project_id" {
   description = "Google Cloud Project ID"
+  default = "network-cloud-002277864"
 }
 
 variable "region" {
@@ -18,6 +19,7 @@ variable "region" {
 
 variable "vpc_name" {
   description = "Name of the VPC"
+  default = "my-vpc"
 }
 
 variable "routing_mode" {
@@ -27,14 +29,17 @@ variable "routing_mode" {
 
 variable "webapp_subnet_cidr" {
   description = "CIDR range for the webapp subnetwork"
+  default = "100.1.1.0/24"
 }
 
 variable "db_subnet_cidr" {
   description = "CIDR range for the db subnetwork"
+  default = "100.1.2.0/24"
 }
 
 variable "default_route_dest_range" {
   description = "Destination range for the default route"
+  default = "0.0.0.0/0"
 }
 
 variable "machine_type" {
