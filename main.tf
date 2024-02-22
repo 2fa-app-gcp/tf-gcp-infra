@@ -40,7 +40,6 @@ resource "google_compute_firewall" "allow_internet" {
   }
 
   source_ranges = ["0.0.0.0/0"]
-  target_tags   = ["allow-internet"]
 }
 
 resource "google_compute_firewall" "deny_ssh" {
@@ -65,8 +64,6 @@ resource "google_compute_instance" "myinstance" {
     access_config {
       network_tier = "PREMIUM"
     }
-    queue_count = 0
-    stack_type  = "IPV4_ONLY"
   }
 
   boot_disk {
