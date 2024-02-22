@@ -59,7 +59,7 @@ variable "image" {
 
 variable "size" {
   description = "Size for the instance's boot disk"
-  default     = "20"
+  default     = "100"
 }
 
 variable "type" {

@@ -33,7 +33,7 @@ resource "google_compute_route" "default_route" {
 resource "google_compute_firewall" "allow_internet" {
   name    = "${var.environment}-allow-internet"
   network = google_compute_network.my_vpc.name
-
+  priority = 800
   allow {
     protocol = "tcp"
     ports    = ["3000"]  
@@ -46,10 +46,9 @@ resource "google_compute_firewall" "allow_internet" {
 resource "google_compute_firewall" "deny_ssh" {
   name    = "${var.environment}-deny-ssh"
   network = google_compute_network.my_vpc.name
-
+  priority = 1000
   deny {
     protocol = "tcp"
-    ports    = ["22"] 
   }
 
   source_ranges = ["0.0.0.0/0"]
