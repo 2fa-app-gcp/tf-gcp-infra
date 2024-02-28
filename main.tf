@@ -80,6 +80,8 @@ resource "google_compute_instance" "myinstance" {
     echo "USERNAME=${google_sql_user.users.name}" >> /opt/webapp/secrets/secrets.env
     echo "PASSWORD=${google_sql_user.users.password}" >> /opt/webapp/secrets/secrets.env
     echo "DATABASE=${google_sql_database.main.name}">> /opt/webapp/secrets/secrets.env
+    echo "startup=true" >> /opt/webapp/secrets/secrets.env
+    sudo  systemctl start node
   SCRIPT
   network_interface {
     subnetwork = google_compute_subnetwork.webapp.name
