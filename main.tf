@@ -121,16 +121,20 @@ resource "google_sql_database_instance" "main" {
   database_version = "MYSQL_8_0"
   depends_on = [ google_service_networking_connection.private_vpc_connection ]
   region     = var.region
-  deletion_protection= false
+  deletion_protection= var.deletion_protection
   
   settings {
-    tier = "db-f1-micro"
+    tier = var.tier
+    disk_type = var.disk_type
+    disk_size = var.disk_size
+    availability_type = var.regional
     ip_configuration {
       ipv4_enabled = false
       private_network =  google_compute_network.my_vpc.self_link
       enable_private_path_for_google_cloud_services = true
     }
   }
+  
 }
 
 resource "google_sql_database" "main" {
