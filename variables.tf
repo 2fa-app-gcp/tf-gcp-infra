@@ -85,14 +85,20 @@ variable "disk_size" {
   default     = 100
 }
 
-variable "regional" {
+variable "availability_type" {
   description = "The availability type of the database instance"
   type        = string
-  default     = "regional"
+  default     = "REGIONAL"
 }
 
 variable "tier" {
   description = "The machine type for the database instance"
   type        = string
   default     = "db-f1-micro"
+}
+
+variable "database_name" {
+  description = "database name"
+  type        = string
+  default     = "webapp"
 }
