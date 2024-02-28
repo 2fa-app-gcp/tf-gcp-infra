@@ -129,7 +129,11 @@ resource "google_sql_database_instance" "main" {
     tier = var.tier
     disk_type = var.disk_type
     disk_size = var.disk_size
-    availability_type = var.regional
+    availability_type = var.availability_type
+    backup_configuration {
+      binary_log_enabled = true 
+      enabled = true
+    }
     ip_configuration {
       ipv4_enabled = false
       private_network =  google_compute_network.my_vpc.self_link
@@ -140,7 +144,7 @@ resource "google_sql_database_instance" "main" {
 }
 
 resource "google_sql_database" "main" {
-  name       = "webapp"
+  name       = var.database_name
   instance   = google_sql_database_instance.main.name
   project    = google_sql_database_instance.main.project
 }
