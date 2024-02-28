@@ -66,3 +66,33 @@ variable "type" {
   description = "Type for the instance's boot disk"
   default     = "pd-balanced"
 }
+
+variable "deletion_protection" {
+  description = "Whether deletion protection is enabled for the database instance"
+  type        = bool
+  default     = false
+}
+
+variable "disk_type" {
+  description = "The type of disk for the database instance"
+  type        = string
+  default     = "pd-ssd"
+}
+
+variable "disk_size" {
+  description = "The size of the disk for the database instance"
+  type        = number
+  default     = 100
+}
+
+variable "regional" {
+  description = "The availability type of the database instance"
+  type        = string
+  default     = "regional"
+}
+
+variable "tier" {
+  description = "The machine type for the database instance"
+  type        = string
+  default     = "db-f1-micro"
+}
