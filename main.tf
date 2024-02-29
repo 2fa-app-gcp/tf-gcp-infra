@@ -42,28 +42,28 @@ resource "google_compute_firewall" "allow_internet" {
   source_ranges = ["0.0.0.0/0"]
 }
 
-resource "google_compute_firewall" "allow_ssh" {
-  name    = "${var.environment}-allow-ssh"
-  network = google_compute_network.my_vpc.name
-  priority = 801
-  allow {
-    protocol = "tcp"
-    ports    = ["22"]  
-  }
-
-  source_ranges = ["0.0.0.0/0"]
-}
-
-# resource "google_compute_firewall" "deny_ssh" {
-#   name    = "${var.environment}-deny-ssh"
+# resource "google_compute_firewall" "allow_ssh" {
+#   name    = "${var.environment}-allow-ssh"
 #   network = google_compute_network.my_vpc.name
-#   priority = 1000
-#   deny {
+#   priority = 801
+#   allow {
 #     protocol = "tcp"
+#     ports    = ["22"]  
 #   }
 
 #   source_ranges = ["0.0.0.0/0"]
 # }
+
+resource "google_compute_firewall" "deny_ssh" {
+  name    = "${var.environment}-deny-ssh"
+  network = google_compute_network.my_vpc.name
+  priority = 1000
+  deny {
+    protocol = "tcp"
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+}
 
 resource "google_compute_instance" "myinstance" {
   name = "${var.environment}-webapp-${formatdate("YYYYMMDDHHmmss", timestamp())}"
