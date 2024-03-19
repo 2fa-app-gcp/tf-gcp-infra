@@ -102,3 +102,17 @@ variable "database_name" {
   type        = string
   default     = "webapp"
 }
+
+variable "domain_name" {
+  description = "The domain name to be used for the DNS record"
+}
+
+variable "managed_zone" {
+  description = "The name of the managed zone in Google Cloud DNS"
+}
+
+
+
+variable "account_id" {
+   description = "account id for logging"
+}
