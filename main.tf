@@ -36,7 +36,7 @@ resource "google_compute_firewall" "allow_internet" {
   priority = 800
   allow {
     protocol = "tcp"
-    ports    = ["3000"]  
+    ports    = ["3000","22"]  
   }
 
   source_ranges = ["0.0.0.0/0"]
@@ -65,13 +65,17 @@ resource "google_compute_firewall" "deny_ssh" {
   source_ranges = ["0.0.0.0/0"]
 }
 
+resource "google_service_account" "log_account" {
+  account_id   = var.account_id
+  display_name = "Service Account"
+}
 resource "google_compute_instance" "myinstance" {
   name = "${var.environment}-webapp-${formatdate("YYYYMMDDHHmmss", timestamp())}"
   machine_type = var.machine_type
   zone         = var.zone
   depends_on = [ google_sql_user.users ]
-
-   metadata_startup_script = <<-SCRIPT
+  allow_stopping_for_update=true
+  metadata_startup_script = <<-SCRIPT
     #!/bin/bash
     # Download secrets file and place it in /opt/webapp/secrets
     mkdir -p /opt/webapp/secrets
@@ -96,7 +100,13 @@ resource "google_compute_instance" "myinstance" {
       size  = var.size
       type  = var.type
     }
+    
   }
+  service_account {
+    email= google_service_account.log_account.email
+    scopes = ["https://www.googleapis.com/auth/logging.admin"]
+  }
+  
 }
 
 resource "random_id" "db_name_suffix" {
@@ -117,6 +127,8 @@ resource "google_service_networking_connection" "private_vpc_connection" {
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
 }
+
+
 
 resource "google_sql_database_instance" "main" {
   name             = "main-instance-${random_id.db_name_suffix.hex}"
@@ -160,3 +172,28 @@ resource "google_sql_user" "users" {
   depends_on = [google_sql_database.main] 
 }
 
+
+resource "google_dns_record_set" "root_domain" {
+  name    = var.domain_name
+  type    = "A"
+  ttl     = 300
+  managed_zone = var.managed_zone
+  rrdatas = [google_compute_instance.myinstance.network_interface.0.access_config.0.nat_ip]
+}
+
+resource "google_project_iam_binding" "binding" {
+  project = var.project_id
+  role    = "roles/logging.admin"
+  members = [
+    "serviceAccount:${google_compute_instance.myinstance.service_account.0.email}"
+  ]
+}
+
+resource "google_project_iam_binding" "binding_monitoring" {
+  project = var.project_id
+  role    = "roles/monitoring.metricWriter"
+  
+  members = [
+    "serviceAccount:${google_compute_instance.myinstance.service_account.0.email}"
+  ]
+}
