@@ -36,7 +36,7 @@ resource "google_compute_firewall" "allow_internet" {
   priority = 800
   allow {
     protocol = "tcp"
-    ports    = ["3000","22"]  
+    ports    = ["3000"]  
   }
 
   source_ranges = ["0.0.0.0/0"]
@@ -104,7 +104,7 @@ resource "google_compute_instance" "myinstance" {
   }
   service_account {
     email= google_service_account.log_account.email
-    scopes = ["https://www.googleapis.com/auth/logging.admin"]
+    scopes = ["https://www.googleapis.com/auth/logging.admin","https://www.googleapis.com/auth/monitoring.write"]
   }
   
 }
