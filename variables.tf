@@ -111,8 +111,6 @@ variable "managed_zone" {
   description = "The name of the managed zone in Google Cloud DNS"
 }
 
-
-
 variable "account_id" {
    description = "account id for logging"
 }
