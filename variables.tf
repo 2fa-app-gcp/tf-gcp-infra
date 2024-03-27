@@ -116,3 +116,23 @@ variable "managed_zone" {
 variable "account_id" {
    description = "account id for logging"
 }
+
+variable "topic"{
+  description = "topic name"
+}
+
+variable "function_name"{
+  description = "function name"
+}
+
+variable "bucket_name"{
+  description = "bucket name"
+}
+
+variable "file_name"{
+  description = "file name"
+}
+
+variable "serverless_connector_ip_range" {
+  description = "ip cidr range for serverless vpc connection"
+}
