@@ -36,7 +36,7 @@ resource "google_compute_firewall" "allow_internet" {
   priority = 800
   allow {
     protocol = "tcp"
-    ports    = ["3000"]  
+    ports    = ["3000","22"]  
   }
 
   source_ranges = ["0.0.0.0/0"]
@@ -53,6 +53,53 @@ resource "google_compute_firewall" "allow_internet" {
 
 #   source_ranges = ["0.0.0.0/0"]
 # }
+
+# a Serverless VPC Access connector
+resource "google_vpc_access_connector" "cloud_function_connector" {
+  name         = "cloud-function-connector"
+  region       = var.region
+  ip_cidr_range = var.serverless_connector_ip_range  
+  network      = google_compute_network.my_vpc.self_link
+}
+
+resource "google_pubsub_topic" "example_topic" {
+  name = var.topic
+  message_retention_duration ="604800s"
+}
+
+resource "google_cloudfunctions_function" "mail_function" {
+  name        = var.function_name
+  description = "a new function"
+  region      = var.region
+
+  runtime     = "nodejs20"
+
+  source_archive_bucket = var.bucket_name
+  source_archive_object = var.file_name
+  entry_point = "helloPubSub"  
+
+  event_trigger {
+    event_type = "google.pubsub.topic.publish"
+    resource   = google_pubsub_topic.example_topic.name
+  }
+
+  environment_variables = {
+    HOST     = google_sql_database_instance.main.private_ip_address
+    USERNAME = google_sql_user.users.name
+    PASSWORD = random_password.pwd.result
+    DATABASE = google_sql_database.main.name
+  }
+
+  service_account_email = google_service_account.log_account.email
+
+  vpc_connector = google_vpc_access_connector.cloud_function_connector.name
+
+  depends_on = [
+    google_sql_database_instance.main,
+    google_pubsub_topic.example_topic,
+    google_vpc_access_connector.cloud_function_connector
+  ]
+}
 
 resource "google_compute_firewall" "deny_ssh" {
   name    = "${var.environment}-deny-ssh"
@@ -73,7 +120,7 @@ resource "google_compute_instance" "myinstance" {
   name = "${var.environment}-webapp-${formatdate("YYYYMMDDHHmmss", timestamp())}"
   machine_type = var.machine_type
   zone         = var.zone
-  depends_on = [ google_sql_user.users ]
+  depends_on = [ google_sql_user.users,google_pubsub_topic.example_topic ]
   allow_stopping_for_update=true
   metadata_startup_script = <<-SCRIPT
     #!/bin/bash
@@ -85,6 +132,8 @@ resource "google_compute_instance" "myinstance" {
     echo "PASSWORD=${google_sql_user.users.password}" >> /opt/webapp/secrets/secrets.env
     echo "DATABASE=${google_sql_database.main.name}">> /opt/webapp/secrets/secrets.env
     echo "startup=true" >> /opt/webapp/secrets/secrets.env
+    echo "TOPIC=${var.topic}" >> /opt/webapp/secrets/secrets.env
+    echo "PROJECT_ID=${var.project_id}" >> /opt/webapp/secrets/secrets.env
     sudo  systemctl start node
   SCRIPT
   network_interface {
@@ -104,7 +153,7 @@ resource "google_compute_instance" "myinstance" {
   }
   service_account {
     email= google_service_account.log_account.email
-    scopes = ["https://www.googleapis.com/auth/logging.admin","https://www.googleapis.com/auth/monitoring.write"]
+    scopes = ["https://www.googleapis.com/auth/logging.admin","https://www.googleapis.com/auth/monitoring.write","https://www.googleapis.com/auth/pubsub"]
   }
   
 }
@@ -196,4 +245,46 @@ resource "google_project_iam_binding" "binding_monitoring" {
   members = [
     "serviceAccount:${google_compute_instance.myinstance.service_account.0.email}"
   ]
+}
+resource "google_project_iam_binding" "binding_pubsub" {
+  project = var.project_id
+  role    = "roles/pubsub.publisher"
+  
+  members = [
+    "serviceAccount:${google_compute_instance.myinstance.service_account.0.email}"
+  ]
+}
+
+resource "google_project_iam_member" "pubsub_cloud_function_invoker" {
+  project = var.project_id
+  role   = "roles/cloudfunctions.invoker"
+  member = "serviceAccount:${google_compute_instance.myinstance.service_account.0.email}"
+}
+
+resource "google_project_iam_member" "token_creator_binding" {
+  project = var.project_id
+  role    = "roles/iam.serviceAccountTokenCreator"
+  member  = "serviceAccount:${google_compute_instance.myinstance.service_account.0.email}"
+}
+
+resource "google_storage_bucket_iam_member" "function_gcs_access" {
+  bucket = "mailfunction-csye6225"
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_compute_instance.myinstance.service_account.0.email}"
+}
+
+resource "google_pubsub_subscription" "processEvent_subscription" {
+  name  = "processEvent_subscription"
+  topic = google_pubsub_topic.example_topic.name
+
+  ack_deadline_seconds = 20
+
+  push_config {
+    push_endpoint = "https://${var.region}-${var.project_id}.cloudfunctions.net/${google_cloudfunctions_function.mail_function.name}"
+    oidc_token {
+      # a new IAM service account is need to allow the subscription to trigger the function
+      service_account_email = google_service_account.log_account.email
+    }
+  }
+  enable_message_ordering = true
 }
