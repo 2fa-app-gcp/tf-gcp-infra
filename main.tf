@@ -67,7 +67,7 @@ resource "google_pubsub_topic" "example_topic" {
   message_retention_duration ="604800s"
 }
 
-resource "google_cloudfunctions_function" "example_function" {
+resource "google_cloudfunctions_function" "mail_function" {
   name        = var.function_name
   description = "a new function"
   region      = var.region
@@ -271,4 +271,20 @@ resource "google_storage_bucket_iam_member" "function_gcs_access" {
   bucket = "mailfunction-csye6225"
   role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${google_compute_instance.myinstance.service_account.0.email}"
+}
+
+resource "google_pubsub_subscription" "processEvent_subscription" {
+  name  = "processEvent_subscription"
+  topic = google_pubsub_topic.example_topic.name
+
+  ack_deadline_seconds = 20
+
+  push_config {
+    push_endpoint = "https://${var.region}-${var.project_id}.cloudfunctions.net/${google_cloudfunctions_function.mail_function.name}"
+    oidc_token {
+      # a new IAM service account is need to allow the subscription to trigger the function
+      service_account_email = google_service_account.log_account.email
+    }
+  }
+  enable_message_ordering = true
 }
