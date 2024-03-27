@@ -64,6 +64,7 @@ resource "google_vpc_access_connector" "cloud_function_connector" {
 
 resource "google_pubsub_topic" "example_topic" {
   name = var.topic
+  message_retention_duration ="604800s"
 }
 
 resource "google_cloudfunctions_function" "example_function" {
