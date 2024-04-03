@@ -301,7 +301,6 @@ resource "google_sql_database_instance" "main" {
       enable_private_path_for_google_cloud_services = true
     }
   }
-
 }
 
 resource "google_sql_database" "main" {
@@ -376,15 +375,6 @@ resource "google_storage_bucket_iam_member" "function_gcs_access" {
 resource "google_pubsub_subscription" "processEvent_subscription" {
   name  = "processEvent_subscription"
   topic = google_pubsub_topic.example_topic.name
-
   ack_deadline_seconds = 20
-
-  push_config {
-    push_endpoint = "https://${var.region}-${var.project_id}.cloudfunctions.net/${google_cloudfunctions_function.mail_function.name}"
-    oidc_token {
-      # a new IAM service account is need to allow the subscription to trigger the function
-      service_account_email = google_service_account.log_account.email
-    }
-  }
   enable_message_ordering = true
 }
