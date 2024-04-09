@@ -4,6 +4,70 @@ provider "google" {
   region      = var.region
 }
 
+
+provider "google-beta" {
+  credentials = file(var.credentials_file)
+  project     = var.project_id
+  region      = var.region
+}
+
+resource "google_kms_key_ring" "key_ring" {
+  name     = "key-ring-20240409084852"
+  location = var.region
+  provider = google-beta
+}
+
+resource "google_kms_crypto_key" "vm_key" {
+  name            = "vm-key"
+  key_ring        = google_kms_key_ring.key_ring.id
+  rotation_period = "2592000s"
+  provider        = google-beta
+}
+
+resource "google_kms_crypto_key" "sql_key" {
+  name            = "sql-key"
+  key_ring        = google_kms_key_ring.key_ring.id
+  rotation_period = "2592000s"
+  provider        = google-beta
+}
+
+resource "google_kms_crypto_key" "storage_key" {
+  name            = "storage-key"
+  key_ring        = google_kms_key_ring.key_ring.id
+  rotation_period = "2592000s"
+  provider        = google-beta
+}
+
+resource "google_storage_bucket" "serverless_bucket" {
+ name= var.bucket_name
+ location = var.region
+  encryption {
+    default_kms_key_name = google_kms_crypto_key.storage_key.id
+  }
+  force_destroy = true
+  public_access_prevention = "enforced"
+  depends_on = [google_kms_crypto_key.storage_key,
+  google_kms_crypto_key_iam_binding.binding,
+  ]
+}
+
+resource "google_storage_bucket_object" "serverless_bucket_object" {
+  name   = var.file_name
+  bucket = google_storage_bucket.serverless_bucket.name
+  source = "./Archive.zip"  
+  depends_on = [ google_storage_bucket.serverless_bucket ]
+}
+
+resource "google_storage_bucket_iam_binding" "storage_bucket_iam_binding" {
+  bucket = google_storage_bucket.serverless_bucket.name
+  role   = "roles/storage.admin"
+  members = [
+    "serviceAccount:${google_service_account.log_account.email}",
+    
+  ]
+}
+
+
 resource "google_compute_network" "my_vpc" {
   name                            = "${var.environment}-${var.vpc_name}"
   auto_create_subnetworks         = false
@@ -55,14 +119,12 @@ resource "google_pubsub_topic" "example_topic" {
 }
 
 resource "google_cloudfunctions_function" "mail_function" {
-  name        = var.function_name
-  description = "a new function"
-  region      = var.region
-
-  runtime = "nodejs20"
-
-  source_archive_bucket = var.bucket_name
-  source_archive_object = var.file_name
+  name                  = var.function_name
+  description           = "a new function"
+  region                = var.region
+  runtime               = "nodejs20"
+  source_archive_bucket = google_storage_bucket.serverless_bucket.name
+  source_archive_object = google_storage_bucket_object.serverless_bucket_object.name
   entry_point           = "helloPubSub"
 
   event_trigger {
@@ -132,18 +194,22 @@ resource "google_compute_region_instance_template" "myinstance" {
       network_tier = "PREMIUM"
     }
   }
+
   disk {
     source_image = var.image
     auto_delete  = true
     disk_size_gb = var.size
     disk_type    = var.type
+    disk_encryption_key {
+      kms_key_self_link = google_kms_crypto_key.vm_key.id
+    }
   }
   service_account {
     email  = google_service_account.log_account.email
     scopes = ["https://www.googleapis.com/auth/logging.admin", "https://www.googleapis.com/auth/monitoring.write", "https://www.googleapis.com/auth/pubsub"]
   }
 
-  tags   = ["http"]
+  tags = ["http"]
 }
 
 resource "google_compute_health_check" "webapp_health_check" {
@@ -178,7 +244,7 @@ resource "google_compute_region_autoscaler" "autoscaler" {
 }
 
 resource "google_compute_region_instance_group_manager" "instance_group_manager" {
-  name                      = "group-manager"
+  name                      = "instance-group-manager"
   base_instance_name        = "webappinstance"
   region                    = var.region
   distribution_policy_zones = [var.zone]
@@ -285,7 +351,7 @@ resource "google_sql_database_instance" "main" {
   depends_on          = [google_service_networking_connection.private_vpc_connection]
   region              = var.region
   deletion_protection = var.deletion_protection
-
+  encryption_key_name = google_kms_crypto_key.sql_key.id
   settings {
     tier              = var.tier
     disk_type         = var.disk_type
@@ -367,14 +433,49 @@ resource "google_project_iam_member" "token_creator_binding" {
 }
 
 resource "google_storage_bucket_iam_member" "function_gcs_access" {
-  bucket = "mailfunction-csye6225"
+  bucket = var.bucket_name
   role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${google_compute_region_instance_template.myinstance.service_account.0.email}"
+  member = "serviceAccount:${google_service_account.log_account.email}"
+  depends_on = [google_storage_bucket_object.serverless_bucket_object]
 }
 
 resource "google_pubsub_subscription" "processEvent_subscription" {
-  name  = "processEvent_subscription"
-  topic = google_pubsub_topic.example_topic.name
-  ack_deadline_seconds = 20
+  name                    = "processEvent_subscription"
+  topic                   = google_pubsub_topic.example_topic.name
+  ack_deadline_seconds    = 20
   enable_message_ordering = true
+}
+
+
+resource "google_kms_crypto_key_iam_binding" "vm_crypto_key_iam_binding" {
+  crypto_key_id = google_kms_crypto_key.vm_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+
+  members = [
+    "serviceAccount:service-627099391328@compute-system.iam.gserviceaccount.com",
+  ]
+}
+
+resource "google_kms_crypto_key_iam_binding" "csql_crypto_key_iam_binding" {
+  crypto_key_id = google_kms_crypto_key.sql_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+
+  members = [
+    "serviceAccount:${google_project_service_identity.gcp_sa_cloud_sql.email}",
+  ]
+}
+data "google_storage_project_service_account" "gcs_account" {
+}
+
+resource "google_kms_crypto_key_iam_binding" "binding" {
+  crypto_key_id = google_kms_crypto_key.storage_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+
+  members = ["serviceAccount:service-627099391328@gs-project-accounts.iam.gserviceaccount.com"]
+}
+
+
+resource "google_project_service_identity" "gcp_sa_cloud_sql" {
+  provider = google-beta
+  service  = "sqladmin.googleapis.com"
 }
