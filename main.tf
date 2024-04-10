@@ -12,7 +12,7 @@ provider "google-beta" {
 }
 
 resource "google_kms_key_ring" "key_ring" {
-  name     = "key-ring-${formatdate("YYYYMMDDHHmmss", timestamp())}"
+  name     = var.key_ring_name
   location = var.region
   provider = google-beta
 }
@@ -100,7 +100,7 @@ resource "google_compute_firewall" "allow_internet" {
   priority = 800
   allow {
     protocol = "tcp"
-    ports    = ["3000"]
+    ports    = [var.port]
   }
   source_ranges = ["130.211.0.0/22", "35.191.0.0/16"]
   target_tags   = ["http"]
@@ -217,13 +217,13 @@ resource "google_compute_region_instance_template" "myinstance" {
 
 resource "google_compute_health_check" "webapp_health_check" {
   name                = "webapp-health-check"
-  check_interval_sec  = 10
-  timeout_sec         = 5
-  healthy_threshold   = 2
-  unhealthy_threshold = 2
+  check_interval_sec  = var.check_interval_sec
+  timeout_sec         = var.timeout_sec
+  healthy_threshold   = var.health_threshold
+  unhealthy_threshold = var.health_threshold
 
   http_health_check {
-    port         = "3000"
+    port         = var.port
     port_name    = "http"
     request_path = "/healthz"
   }
@@ -237,11 +237,11 @@ resource "google_compute_region_autoscaler" "autoscaler" {
   region = var.region
   target = google_compute_region_instance_group_manager.instance_group_manager.self_link
   autoscaling_policy {
-    min_replicas    = 3
-    max_replicas    = 6
-    cooldown_period = 100
+    min_replicas    = var.minreplica
+    max_replicas    = var.maxreplica
+    cooldown_period = var.cooldown_period
     cpu_utilization {
-      target = 0.05
+      target = var.cpu_utilization
     }
   }
 }
@@ -258,7 +258,7 @@ resource "google_compute_region_instance_group_manager" "instance_group_manager"
 
   named_port {
     name = "http"
-    port = 3000
+    port = var.port
   }
   auto_healing_policies {
     health_check      = google_compute_health_check.webapp_health_check.self_link
