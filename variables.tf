@@ -10,7 +10,7 @@ variable "credentials_file" {
 
 variable "project_id" {
   description = "Google Cloud Project ID"
-  default = "network-cloud-002277864"
+  default     = "network-cloud-002277864"
 }
 
 variable "region" {
@@ -19,7 +19,7 @@ variable "region" {
 
 variable "vpc_name" {
   description = "Name of the VPC"
-  default = "my-vpc"
+  default     = "my-vpc"
 }
 
 variable "routing_mode" {
@@ -29,17 +29,17 @@ variable "routing_mode" {
 
 variable "webapp_subnet_cidr" {
   description = "CIDR range for the webapp subnetwork"
-  default = "100.1.1.0/24"
+  default     = "100.1.1.0/24"
 }
 
 variable "db_subnet_cidr" {
   description = "CIDR range for the db subnetwork"
-  default = "100.1.2.0/24"
+  default     = "100.1.2.0/24"
 }
 
 variable "default_route_dest_range" {
   description = "Destination range for the default route"
-  default = "0.0.0.0/0"
+  default     = "0.0.0.0/0"
 }
 
 variable "machine_type" {
@@ -112,22 +112,22 @@ variable "managed_zone" {
 }
 
 variable "account_id" {
-   description = "account id for logging"
+  description = "account id for logging"
 }
 
-variable "topic"{
+variable "topic" {
   description = "topic name"
 }
 
-variable "function_name"{
+variable "function_name" {
   description = "function name"
 }
 
-variable "bucket_name"{
+variable "bucket_name" {
   description = "bucket name"
 }
 
-variable "file_name"{
+variable "file_name" {
   description = "file name"
 }
 
@@ -140,7 +140,7 @@ variable "apikey" {
 }
 
 variable "domain" {
-  description = "domain name" 
+  description = "domain name"
 }
 
 variable "binding_account" {
@@ -149,4 +149,40 @@ variable "binding_account" {
 
 variable "vm_account" {
   description = "vm account"
+}
+
+variable "minreplica" {
+  description = "minimum replicas"
+}
+
+variable "maxreplica" {
+  description = "maximum replicas"
+}
+
+variable "port" {
+  description = "port number"
+}
+
+variable "cpu_utilization" {
+  description = "cpu utilization"
+}
+
+variable "cooldown_period" {
+  description = "cooldown_period"
+}
+
+variable "check_interval_sec" {
+  description = "check_interval_sec"
+}
+
+variable "timeout_sec" {
+  description = "timeout_sec"
+}
+
+variable "health_threshold" {
+  description = "threshold for health check"
+}
+
+variable "key_ring_name" {
+  description = "key ring name"
 }
