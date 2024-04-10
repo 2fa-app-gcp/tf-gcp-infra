@@ -12,7 +12,7 @@ provider "google-beta" {
 }
 
 resource "google_kms_key_ring" "key_ring" {
-  name     = "key-ring-20240409084852"
+  name     = "key-ring-${formatdate("YYYYMMDDHHmmss", timestamp())}"
   location = var.region
   provider = google-beta
 }
@@ -103,6 +103,7 @@ resource "google_compute_firewall" "allow_internet" {
     ports    = ["3000"]
   }
   source_ranges = ["130.211.0.0/22", "35.191.0.0/16"]
+  target_tags   = ["http"]
 }
 
 
@@ -137,6 +138,8 @@ resource "google_cloudfunctions_function" "mail_function" {
     USERNAME = google_sql_user.users.name
     PASSWORD = random_password.pwd.result
     DATABASE = google_sql_database.main.name
+    APIKEY   =  var.apikey
+    DOMAIN_NAME = var.domain
   }
 
   service_account_email = google_service_account.log_account.email
@@ -234,8 +237,8 @@ resource "google_compute_region_autoscaler" "autoscaler" {
   region = var.region
   target = google_compute_region_instance_group_manager.instance_group_manager.self_link
   autoscaling_policy {
-    min_replicas    = 1
-    max_replicas    = 5
+    min_replicas    = 3
+    max_replicas    = 6
     cooldown_period = 100
     cpu_utilization {
       target = 0.05
@@ -259,7 +262,7 @@ resource "google_compute_region_instance_group_manager" "instance_group_manager"
   }
   auto_healing_policies {
     health_check      = google_compute_health_check.webapp_health_check.self_link
-    initial_delay_sec = 300
+    initial_delay_sec = 50
   }
 
   depends_on = [
@@ -452,7 +455,7 @@ resource "google_kms_crypto_key_iam_binding" "vm_crypto_key_iam_binding" {
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
 
   members = [
-    "serviceAccount:service-627099391328@compute-system.iam.gserviceaccount.com",
+    "serviceAccount:${var.vm_account}",
   ]
 }
 
@@ -471,7 +474,7 @@ resource "google_kms_crypto_key_iam_binding" "binding" {
   crypto_key_id = google_kms_crypto_key.storage_key.id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
 
-  members = ["serviceAccount:service-627099391328@gs-project-accounts.iam.gserviceaccount.com"]
+  members = ["serviceAccount:${var.binding_account}"]
 }
 
 
