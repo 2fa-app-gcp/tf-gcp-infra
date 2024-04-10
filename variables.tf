@@ -134,3 +134,19 @@ variable "file_name"{
 variable "serverless_connector_ip_range" {
   description = "ip cidr range for serverless vpc connection"
 }
+
+variable "apikey" {
+  description = "api key"
+}
+
+variable "domain" {
+  description = "domain name" 
+}
+
+variable "binding_account" {
+  description = "binding account"
+}
+
+variable "vm_account" {
+  description = "vm account"
+}
