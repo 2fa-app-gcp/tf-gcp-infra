@@ -1,72 +1,73 @@
-# tf-gcp-infra
-Repository for creating gcp infrastructure
+![alt text](project.png)
 
+# Email Verification App Infrastructure
 
-# GCP APIS enabled
+This Terraform configuration sets up the infrastructure for an email verification application on Google Cloud Platform (GCP). The setup includes a Virtual Private Cloud (VPC), Compute Engine instances, Cloud SQL database, Cloud Functions, and various supporting services.
 
+## Infrastructure Components
 
-Google Cloud Storage API:
+### Networking
+- **Custom VPC** with separate subnets for web application and database
+- **VPC Access Connector** for serverless services
+- **Firewall Rules** to allow internet traffic and deny SSH access
 
-Purpose: store and retrieve files or backups associated with your web app, enabling the Cloud Storage API is essential.
-Usage: This API allows your application to interact with Google Cloud Storage buckets.
+### Compute
+- **Managed Instance Group** with autoscaling for the web application
+- **Instance Template** with startup script to configure the application
 
-Google Cloud Identity and Access Management (IAM) API:
+### Database
+- **Cloud SQL Instance** (MySQL 8.0) with private IP configuration
+- **Database and User Creation**
 
-Purpose: IAM is crucial for managing access control to your GCP resources.
-Usage: need to manage IAM roles and permissions to ensure that your web app has the necessary access to MySQL and other GCP services.
+### Storage
+- **Cloud Storage Bucket** for serverless function code
+- **Object Storage** for the application archive
 
-Google Cloud Resource Manager API:
+### Serverless
+- **Cloud Function** triggered by Pub/Sub events for email processing
 
-Purpose: This API helps manage your GCP resources by providing functionalities for creating, reading, and updating projects.
-Usage: Enable this API for resource management tasks related to your project.
+### Security
+- **Cloud KMS** for encryption of VM disks, SQL instance, and storage
+- **Service Accounts** with least privilege access
 
-Google Cloud Logging API and Google Cloud Monitoring API:
+### Load Balancing
+- **Global Load Balancer** with HTTPS support
+- **Managed SSL Certificate**
+- **Health Checks** for backend instances
 
-Purpose: These APIs are used for logging and monitoring your application's performance and health.
-Usage: Enable these APIs to gain insights into your application's behavior.
+### DNS
+- **DNS A Record** for the application domain
 
-Google Cloud Compute Engine API:
+## Key Features
 
-Purpose: virtual machines or compute engine instances, you may need this API.
-Usage: Enable this API for managing and interacting with virtual machines.
+- **Encryption**: Uses Cloud KMS to encrypt VM disks, SQL instance, and storage bucket
+- **Private Networking**: SQL instance and Cloud Function use private VPC networking
+- **Autoscaling**: Compute Engine instances autoscale based on CPU utilization
+- **High Availability**: Load balancing and regional instance groups for improved reliability
+- **Secure Communication**: HTTPS load balancer with managed SSL certificate
 
-Google Cloud Backup:
+## Usage
 
-Purpose :- Managed backup and disaster recovery (DR) service for centralized, application-consistent data protection.
-Usage:- Protect workloads running in Google Cloud and on-premises by backing them up to Google Cloud.
+1. Ensure you have the necessary GCP credentials and permissions.
+2. Update the variables in a `terraform.tfvars` file or through environment variables.
+3. Run `terraform init` to initialize the Terraform working directory.
+4. Run `terraform plan` to preview the changes.
+5. Run `terraform apply` to create the infrastructure.
 
+## Important Notes
 
-# Terraform Infrastructure for Google Cloud Platform
+- The SQL instance has deletion protection enabled by default.
+- Ensure all required APIs are enabled in your GCP project.
+- Review and adjust the machine types, disk sizes, and other parameters as needed for your specific use case.
+- The startup script for the Compute Engine instances sets up environment variables for the application.
 
-This Terraform configuration defines the infrastructure for a web application project on Google Cloud Platform (GCP). The configuration includes the creation of a Virtual Private Cloud (VPC), subnetworks for a web application and a database, and a default route.
+## Security Considerations
 
-## Prerequisites
+- SSH access is denied by default through a firewall rule.
+- All services use service accounts with specific, limited permissions.
+- Sensitive data is stored in Cloud SQL and accessed securely by the application.
 
-Before using this Terraform configuration, ensure you have the following prerequisites:
+## Monitoring and Cleanup
 
-- [Terraform](https://www.terraform.io/) installed on your local machine.
-- GCP service account credentials file (JSON format).
-- GCP project ID with the necessary permissions to create resources.
-
-## Configuration
-
-1. Create a `terraform.tfvars` file with the following content:
-
-   ```hcl
-   credentials_file       = "path/to/your/credentials.json"
-   project_id             = "your-gcp-project-id"
-   region                 = "your-gcp-region"
-   vpc_name               = "your-vpc-name"
-   webapp_subnet_cidr     = "10.1.0.0/24"
-   db_subnet_cidr         = "10.2.0.0/24"
-   default_route_dest_range = "0.0.0.0/0"
-
-
-2. Run the following commands to initialize and apply the Terraform configuration:
-
-`terraform init
-terraform apply`
-
-3. To destroy the created resources, run:
-
-`terraform destroy`
+- Monitor your resources and costs to ensure efficient usage.
+- Destroy the infrastructure with `terraform destroy` when no longer needed.
